@@ -5,38 +5,87 @@ let activeIndex = 0;
 let growthTimer = null;
 let shatterTimer = null;
 let explosionTimer = null;
+let zStretchTimer = null;
 let physicsFrame = null;
 let fragments = [];
+let tiltX = 0;
+let tiltY = 0;
+let motionControlsReady = false;
+
+function enableMotionControls() {
+  if (motionControlsReady || !('DeviceOrientationEvent' in window)) return;
+  motionControlsReady = true;
+
+  const addOrientationListener = () => {
+    window.addEventListener('deviceorientation', (event) => {
+      tiltX = Math.max(-1, Math.min(1, (event.gamma || 0) / 35));
+      tiltY = Math.max(-1, Math.min(1, (event.beta || 0) / 45));
+      document.documentElement.style.setProperty('--tilt-x', tiltX);
+      document.documentElement.style.setProperty('--tilt-y', tiltY);
+    });
+  };
+
+  if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then((permission) => {
+      if (permission === 'granted') addOrientationListener();
+    }).catch(() => {});
+  } else {
+    addOrientationListener();
+  }
+}
+
+function mountExplosionEmbed() {
+  const slot = document.querySelector('.explosion-embed-slot');
+  if (!slot || slot.firstElementChild) return;
+
+  const embed = document.createElement('div');
+  embed.className = 'tenor-gif-embed';
+  embed.dataset.postid = '13138346';
+  embed.dataset.shareMethod = 'host';
+  embed.dataset.aspectRatio = '1';
+  embed.dataset.width = '100%';
+  embed.innerHTML = '<a href="https://tenor.com/view/discord-discordgifemoji-boom-explosion-explode-gif-13138346">Discord Discordgifemoji Sticker</a> from <a href="https://tenor.com/search/discord-stickers">Discord Stickers</a>';
+  slot.appendChild(embed);
+
+  const tenorScript = document.createElement('script');
+  tenorScript.async = true;
+  tenorScript.src = 'https://tenor.com/embed.js';
+  tenorScript.dataset.explosionLoader = 'true';
+  document.body.appendChild(tenorScript);
+}
 
 function resetExplosion() {
   if (explosionTimer !== null) window.clearTimeout(explosionTimer);
   explosionTimer = null;
 
-  const explosionImage = document.querySelector('.explosion-backdrop img');
-  if (!explosionImage) return;
-
-  explosionImage.style.visibility = '';
-  const source = explosionImage.dataset.source || explosionImage.getAttribute('src');
-  explosionImage.dataset.source = source.split('?')[0];
-  explosionImage.src = `${explosionImage.dataset.source}?run=${Date.now()}`;
+  const explosionBackdrop = document.querySelector('.explosion-backdrop');
+  if (explosionBackdrop) {
+    explosionBackdrop.style.visibility = 'hidden';
+    explosionBackdrop.style.opacity = '0';
+  }
+  document.querySelector('.explosion-embed-slot')?.replaceChildren();
+  document.querySelector('script[data-explosion-loader]')?.remove();
 }
 
 function startExplosion() {
-  const explosionImage = document.querySelector('.explosion-backdrop img');
-  if (!explosionImage) return;
+  const explosionBackdrop = document.querySelector('.explosion-backdrop');
+  if (!explosionBackdrop) return;
 
-  explosionImage.style.visibility = 'hidden';
+  mountExplosionEmbed();
+  explosionBackdrop.style.visibility = 'visible';
+  explosionBackdrop.style.opacity = '1';
   explosionTimer = window.setTimeout(() => {
-    resetExplosion();
+    explosionBackdrop.style.opacity = '0';
     explosionTimer = window.setTimeout(() => {
-      explosionImage.style.visibility = 'hidden';
+      explosionBackdrop.style.visibility = 'hidden';
       explosionTimer = null;
-    }, 1500);
-  }, 250);
+    }, 900);
+  }, 1700);
 }
 
 function addCharacterWobble() {
   document.querySelectorAll('h1, h2').forEach((heading) => {
+    if (heading.classList.contains('z-stretch')) return;
     if (heading.classList.contains('shatter-text')) {
       heading.querySelectorAll(':scope > span').forEach((letter, letterIndex) => {
         letter.classList.add('wobble-letter');
@@ -67,6 +116,28 @@ function addCharacterWobble() {
   });
 }
 
+function stopZStretch() {
+  if (zStretchTimer !== null) window.clearInterval(zStretchTimer);
+  zStretchTimer = null;
+}
+
+function startZStretch() {
+  stopZStretch();
+  const heading = document.querySelector('.z-stretch');
+  if (!heading) return;
+
+  const prefix = heading.dataset.prefix || 'pl';
+  const suffix = heading.dataset.suffix || '';
+  const totalZs = 5;
+  let zCount = 1;
+  heading.textContent = `${prefix}${'z'.repeat(zCount)}${suffix}`;
+  zStretchTimer = window.setInterval(() => {
+    zCount += 1;
+    heading.textContent = `${prefix}${'z'.repeat(zCount)}${suffix}`;
+    if (zCount === totalZs) stopZStretch();
+  }, 250);
+}
+
 function resetShatter() {
   if (shatterTimer !== null) window.clearTimeout(shatterTimer);
   if (physicsFrame !== null) window.cancelAnimationFrame(physicsFrame);
@@ -87,6 +158,8 @@ function resetShatter() {
 function simulateFragments(timestamp) {
   let moving = false;
   fragments.forEach((fragment) => {
+    fragment.vx += tiltX * 0.08;
+    fragment.vy += tiltY * 0.08;
     fragment.vy += 0.4;
     fragment.x += fragment.vx;
     fragment.y += fragment.vy;
@@ -155,7 +228,7 @@ function createShatterFragments() {
 function startShatter() {
   resetShatter();
   if (!document.querySelector('.shatter-text')?.closest('.slide.is-active')) return;
-  shatterTimer = window.setTimeout(createShatterFragments, 300);
+  shatterTimer = window.setTimeout(createShatterFragments, 450);
 }
 
 function stopNumberGrowth() {
@@ -202,6 +275,7 @@ function showSlide(index) {
   stopNumberGrowth();
   resetShatter();
   resetExplosion();
+  stopZStretch();
 
   slides.forEach((slide, slideIndex) => {
     slide.classList.toggle('is-active', slideIndex === activeIndex);
@@ -212,6 +286,8 @@ function showSlide(index) {
     startExplosion();
   }
 
+  if (document.querySelector('.z-stretch')?.closest('.slide.is-active')) startZStretch();
+
   nextButton.disabled = activeIndex === slides.length - 1;
   if (activeIndex === slides.length - 1) startNumberGrowth();
 }
@@ -220,7 +296,10 @@ function moveSlide(direction) {
   showSlide(activeIndex + direction);
 }
 
-nextButton.addEventListener('click', () => moveSlide(1));
+nextButton.addEventListener('click', () => {
+  enableMotionControls();
+  moveSlide(1);
+});
 
 document.addEventListener('keydown', (event) => {
   if (event.key === 'ArrowLeft') moveSlide(-1);
@@ -241,6 +320,7 @@ document.addEventListener('wheel', (event) => {
 
 let touchStartX = 0;
 document.addEventListener('touchstart', (event) => {
+  enableMotionControls();
   touchStartX = event.changedTouches[0].screenX;
 }, { passive: true });
 document.addEventListener('touchend', (event) => {

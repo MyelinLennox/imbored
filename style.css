@@ -6,7 +6,7 @@
 
 * { box-sizing: border-box; }
 
-html, body { min-height: 100%; }
+html, body { min-height: 100%; overflow: hidden; }
 
 body {
   margin: 0;
@@ -86,14 +86,23 @@ button { cursor: pointer; }
   left: 50%;
   width: min(100vw, 820px);
   height: auto;
-  overflow: visible;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  mix-blend-mode: screen;
+  transition: opacity .9s ease;
   transform: translate(-50%, -50%);
 }
-.explosion-backdrop img {
-  display: block;
+.explosion-backdrop .tenor-gif-embed {
   width: 100%;
-  height: auto;
   max-width: none;
+  margin: 0;
+  image-rendering: pixelated;
+  pointer-events: none;
+}
+.explosion-backdrop iframe {
+  width: 100%;
+  height: 100%;
   image-rendering: pixelated;
 }
 .shatter-text {
@@ -117,6 +126,8 @@ h1, h2 {
   font-weight: 800;
   letter-spacing: -.04em;
   line-height: .88;
+  translate: calc(var(--tilt-x, 0) * 8px) calc(var(--tilt-y, 0) * 8px);
+  transition: translate .15s ease-out;
 }
 h1, h2 { white-space: normal; overflow-wrap: normal; word-break: normal; }
 h2 { font-size: clamp(4rem, 10vw, 10rem); }
@@ -240,6 +251,8 @@ h2 { font-size: clamp(4rem, 10vw, 10rem); }
   word-break: break-all;
   white-space: normal;
   animation: none;
+  translate: calc(var(--tilt-x, 0) * 8px) calc(var(--tilt-y, 0) * 8px);
+  transition: translate .15s ease-out;
 }
 
 .physics-piece {
