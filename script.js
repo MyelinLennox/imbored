@@ -130,8 +130,11 @@ function resetTypewriter() {
   typewriterTimers.forEach((timer) => window.clearTimeout(timer));
   typewriterTimers = [];
   document.querySelectorAll('.typewriter-cursor').forEach((cursor) => { cursor.hidden = true; });
-  document.querySelectorAll('h1:not(.z-stretch) .wobble-letter, h2:not(.z-stretch) .wobble-letter')
-    .forEach((letter) => letter.classList.remove('is-typed'));
+  document.querySelectorAll('h1:not(.z-stretch) .wobble-letter, h2:not(.z-stretch):not(.shatter-text) .wobble-letter')
+    .forEach((letter) => {
+      letter.classList.remove('is-typed');
+      letter.style.opacity = '0';
+    });
 }
 
 function startTypewriter() {
@@ -143,6 +146,7 @@ function startTypewriter() {
   letters.forEach((letter, index) => {
     typewriterTimers.push(window.setTimeout(() => {
       letter.classList.add('is-typed');
+      letter.style.opacity = '1';
     }, index * 40));
   });
   if (cursor) cursor.hidden = false;
@@ -376,6 +380,14 @@ function showSlide(index) {
   slides.forEach((slide, slideIndex) => {
     slide.classList.toggle('is-active', slideIndex === activeIndex);
   });
+
+  const swipeHand = nextButton.querySelector('.swipe-hand');
+  if (swipeHand) {
+    const showHand = activeIndex === 0;
+    swipeHand.classList.toggle('is-hidden', !showHand);
+    swipeHand.style.visibility = showHand ? 'visible' : 'hidden';
+    swipeHand.style.opacity = showHand ? '1' : '0';
+  }
 
   startTypewriter();
 
