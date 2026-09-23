@@ -17,13 +17,16 @@ function enableMotionControls() {
   if (motionControlsReady || !('DeviceOrientationEvent' in window)) return;
   motionControlsReady = true;
 
+  const updateTilt = (event) => {
+    tiltX = Math.max(-1, Math.min(1, (event.gamma || 0) / 35));
+    tiltY = Math.max(-1, Math.min(1, (event.beta || 0) / 45));
+    document.documentElement.style.setProperty('--tilt-x', tiltX);
+    document.documentElement.style.setProperty('--tilt-y', tiltY);
+  };
+
   const addOrientationListener = () => {
-    window.addEventListener('deviceorientation', (event) => {
-      tiltX = Math.max(-1, Math.min(1, (event.gamma || 0) / 35));
-      tiltY = Math.max(-1, Math.min(1, (event.beta || 0) / 45));
-      document.documentElement.style.setProperty('--tilt-x', tiltX);
-      document.documentElement.style.setProperty('--tilt-y', tiltY);
-    });
+    window.addEventListener('deviceorientation', updateTilt, { passive: true });
+    window.addEventListener('deviceorientationabsolute', updateTilt, { passive: true });
   };
 
   if (typeof DeviceOrientationEvent.requestPermission === 'function') {

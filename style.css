@@ -264,7 +264,6 @@ h1 .wobble-word { white-space: normal; }
 
 @media (prefers-reduced-motion: reduce) {
   .slide, .dot, .swipe-indicator, .restart-button span { transition: none; }
-  .slide.is-active h1, .slide.is-active h2, .swipe-indicator { animation: none; }
 }
 
 @keyframes headline-slide {
