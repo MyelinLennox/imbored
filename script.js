@@ -11,6 +11,7 @@ let fragments = [];
 let tiltX = 0;
 let tiltY = 0;
 let motionControlsReady = false;
+let typewriterTimers = [];
 
 function enableMotionControls() {
   if (motionControlsReady || !('DeviceOrientationEvent' in window)) return;
@@ -78,11 +79,15 @@ function startExplosion() {
 
 function addCharacterWobble() {
   document.querySelectorAll('h1, h2').forEach((heading) => {
+    let characterIndex = 0;
     if (heading.classList.contains('z-stretch')) return;
     if (heading.classList.contains('shatter-text')) {
       heading.querySelectorAll(':scope > span').forEach((letter, letterIndex) => {
         letter.classList.add('wobble-letter');
         letter.style.setProperty('--wobble-delay', `${letterIndex * -0.07}s`);
+        letter.style.setProperty('--type-delay', `${characterIndex * 0.075}s`);
+        letter.classList.add('is-typed');
+        characterIndex += 1;
       });
       return;
     }
@@ -102,10 +107,65 @@ function addCharacterWobble() {
         letter.className = 'wobble-letter';
         letter.textContent = character;
         letter.style.setProperty('--wobble-delay', `${letterIndex * -0.07}s`);
+        letter.style.setProperty('--type-delay', `${characterIndex * 0.075}s`);
+        letter.classList.add('is-typed');
+        characterIndex += 1;
         wordElement.appendChild(letter);
       });
       heading.appendChild(wordElement);
     });
+
+    const cursor = document.createElement('span');
+    cursor.className = 'typewriter-cursor';
+    cursor.textContent = '_';
+    cursor.setAttribute('aria-hidden', 'true');
+    heading.appendChild(cursor);
+  });
+}
+
+function resetTypewriter() {
+  typewriterTimers.forEach((timer) => window.clearTimeout(timer));
+  typewriterTimers = [];
+  document.querySelectorAll('.typewriter-cursor').forEach((cursor) => { cursor.hidden = true; });
+  document.querySelectorAll('h1:not(.z-stretch) .wobble-letter, h2:not(.z-stretch) .wobble-letter')
+    .forEach((letter) => letter.classList.remove('is-typed'));
+}
+
+function startTypewriter() {
+  const heading = document.querySelector('.slide.is-active h1, .slide.is-active h2:not(.shatter-text):not(.z-stretch)');
+  if (!heading) return;
+
+  const letters = [...heading.querySelectorAll('.wobble-letter')];
+  const cursor = heading.querySelector('.typewriter-cursor');
+  letters.forEach((letter, index) => {
+    typewriterTimers.push(window.setTimeout(() => {
+      letter.classList.add('is-typed');
+    }, index * 40));
+  });
+  if (cursor) cursor.hidden = false;
+}
+
+function updateTypewriterCursors() {
+  document.querySelectorAll('.typewriter-cursor').forEach((cursor) => {
+    const heading = cursor.parentElement;
+    if (!heading?.closest('.slide.is-active')) {
+      cursor.hidden = true;
+      return;
+    }
+
+    const visibleLetters = [...heading.querySelectorAll('.wobble-letter')]
+      .filter((letter) => Number.parseFloat(getComputedStyle(letter).opacity) > 0.5);
+    const lastLetter = visibleLetters.at(-1);
+    if (!lastLetter) {
+      cursor.hidden = true;
+      return;
+    }
+
+    const headingBox = heading.getBoundingClientRect();
+    const letterBox = lastLetter.getBoundingClientRect();
+    cursor.hidden = false;
+    cursor.style.left = `${letterBox.right - headingBox.left + 3}px`;
+    cursor.style.top = `${letterBox.top - headingBox.top + letterBox.height * 0.55}px`;
   });
 }
 
@@ -119,14 +179,24 @@ function startZStretch() {
   const heading = document.querySelector('.z-stretch');
   if (!heading) return;
 
+  const cursor = document.createElement('span');
+  cursor.className = 'sequence-cursor';
+  cursor.textContent = '_';
+  cursor.setAttribute('aria-hidden', 'true');
+  const render = (zText) => heading.replaceChildren(
+    document.createTextNode(`${prefix}${zText}`),
+    cursor,
+    document.createTextNode(suffix),
+  );
+
   const prefix = heading.dataset.prefix || 'pl';
   const suffix = heading.dataset.suffix || '';
   const totalZs = 5;
   let zCount = 1;
-  heading.textContent = `${prefix}${'z'.repeat(zCount)}${suffix}`;
+  render('z'.repeat(zCount));
   zStretchTimer = window.setInterval(() => {
     zCount += 1;
-    heading.textContent = `${prefix}${'z'.repeat(zCount)}${suffix}`;
+    render('z'.repeat(zCount));
     if (zCount === totalZs) stopZStretch();
   }, 250);
 }
@@ -235,12 +305,36 @@ function stopNumberGrowth() {
 function startNumberGrowth() {
   if (!growingNumber) return;
   stopNumberGrowth();
-  growingNumber.textContent = '';
+  const cursor = document.createElement('span');
+  cursor.className = 'sequence-cursor';
+  cursor.textContent = '_';
+  cursor.setAttribute('aria-hidden', 'true');
+  const render = (text, animateLastZero = false) => {
+    const characters = [...text].map((character) => {
+      const span = document.createElement('span');
+      span.className = `number-character${character === '0' ? ' number-zero' : ''}`;
+      span.textContent = character;
+      return span;
+    });
+    if (animateLastZero && characters.length > 0 && text.endsWith('0')) {
+      characters.at(-1).classList.add('number-zero-new');
+    }
+    cursor.hidden = text.includes('0');
+    growingNumber.replaceChildren(...characters, cursor);
+  };
+  render('');
 
   const addZeros = (amount, delay, next) => {
     let remaining = amount;
     const addNextZero = () => {
-      growingNumber.textContent += '0';
+      const currentNumber = [...growingNumber.querySelectorAll('.number-character')]
+        .map((character) => character.textContent)
+        .join('');
+      const nextNumber = `${currentNumber}0`;
+      render(nextNumber, true);
+      if (nextNumber === 'x100') {
+        document.querySelector('.final-slide .typewriter-cursor')?.remove();
+      }
       remaining -= 1;
       growthTimer = remaining > 0
         ? window.setTimeout(addNextZero, delay)
@@ -251,12 +345,15 @@ function startNumberGrowth() {
   };
 
   const addRapidZeros = () => {
-    growingNumber.textContent += '0';
+    const currentNumber = [...growingNumber.querySelectorAll('.number-character')]
+      .map((character) => character.textContent)
+      .join('');
+    render(`${currentNumber}0`, true);
     growthTimer = window.setTimeout(addRapidZeros, 70);
   };
 
   growthTimer = window.setTimeout(() => {
-    growingNumber.textContent = 'x1';
+    render('x1');
     growthTimer = window.setTimeout(() => {
       addZeros(2, 300, () => addZeros(2, 300, addRapidZeros));
     }, 1000);
@@ -268,6 +365,7 @@ function showSlide(index) {
   if (nextIndex === activeIndex) return;
   activeIndex = nextIndex;
   stopNumberGrowth();
+  resetTypewriter();
   resetShatter();
   resetExplosion();
   stopZStretch();
@@ -275,6 +373,8 @@ function showSlide(index) {
   slides.forEach((slide, slideIndex) => {
     slide.classList.toggle('is-active', slideIndex === activeIndex);
   });
+
+  startTypewriter();
 
   if (document.querySelector('.shatter-text')?.closest('.slide.is-active')) {
     startShatter();
@@ -284,6 +384,8 @@ function showSlide(index) {
   if (document.querySelector('.z-stretch')?.closest('.slide.is-active')) startZStretch();
 
   nextButton.disabled = activeIndex === slides.length - 1;
+  nextButton.classList.toggle('is-hidden', false);
+  nextButton.querySelector('.swipe-hand')?.classList.toggle('is-hidden', activeIndex !== 0);
   if (activeIndex === slides.length - 1) startNumberGrowth();
 }
 
@@ -324,4 +426,5 @@ document.addEventListener('touchend', (event) => {
 }, { passive: true });
 
 addCharacterWobble();
+window.setInterval(updateTypewriterCursors, 50);
 showSlide(0);

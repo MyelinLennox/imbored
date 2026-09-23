@@ -13,6 +13,7 @@ body {
   background: #fff;
   color: var(--red);
   font-family: 'Arial Rounded MT Bold', 'Trebuchet MS', Arial, sans-serif;
+  font-family: 'Arial Rounded MT Bold', 'Trebuchet MS', Arial, sans-serif;
   overflow: hidden;
   transition: background-color .5s ease, color .5s ease;
 }
@@ -73,6 +74,7 @@ button { cursor: pointer; }
   opacity: 0;
   transform: translateY(24px);
   pointer-events: none;
+  overflow: visible;
   transition: opacity .45s ease, transform .55s cubic-bezier(.22, .61, .36, 1);
 }
 .slide.is-active { opacity: 1; transform: translateY(0); pointer-events: auto; }
@@ -113,6 +115,10 @@ button { cursor: pointer; }
   gap: .02em;
 }
 .shatter-text span { display: inline-block; }
+.shatter-text .wobble-letter {
+  opacity: 1;
+  visibility: visible;
+}
 .shatter-text.is-shattered > span { visibility: hidden; }
 .shatter-text span:nth-child(3) { width: .35em; }
 .explosion-followup {
@@ -123,26 +129,77 @@ button { cursor: pointer; }
 .slide.is-active .explosion-followup { animation: none; }
 .eyebrow { margin: 0 0 clamp(24px, 4vh, 42px); }
 h1, h2 {
-  width: 100%;
-  max-width: 1200px;
+  width: min(100%, calc(100vw - 48px));
+  max-width: calc(100vw - 48px);
   margin: 0;
   color: var(--red);
   font-family: 'Nunito', 'Arial Rounded MT Bold', 'Trebuchet MS', Arial, sans-serif;
-  font-size: clamp(4.2rem, 11vw, 11rem);
+  font-size: clamp(3.4rem, 8vw, 8rem);
   font-weight: 800;
   letter-spacing: -.04em;
   line-height: .88;
   translate: calc(var(--tilt-x, 0) * 8px) calc(var(--tilt-y, 0) * 8px);
   transition: translate .15s ease-out;
 }
+h1 {
+  width: min(100%, 92vw);
+  font-size: clamp(2.8rem, 7vw, 7rem);
+  overflow-wrap: anywhere;
+}
+h1, h2 {
+  overflow: visible;
+}
 h1, h2 { white-space: normal; overflow-wrap: normal; word-break: normal; }
-h2 { font-size: clamp(4rem, 10vw, 10rem); }
+h2 { font-size: clamp(3.3rem, 8vw, 8rem); }
 .wobble-word { display: inline-block; white-space: nowrap; }
+h1 .wobble-word { white-space: normal; }
 .wobble-letter {
   display: inline-block;
-  animation: character-wobble 1.8s var(--wobble-delay) ease-in-out infinite;
+  opacity: 0;
   transform-origin: 50% 85%;
 }
+.wobble-letter.is-typed { opacity: 1; }
+.typewriter-cursor {
+  position: absolute;
+  color: var(--red);
+  font-size: .7em;
+  font-weight: 800;
+  line-height: 1;
+  transform: translateY(-35%);
+  animation: cursor-blink .9s steps(1, end) infinite;
+}
+.sequence-cursor {
+  display: inline-block;
+  margin-left: .08em;
+  color: var(--red);
+  font-size: .7em;
+  font-weight: 800;
+  animation: cursor-blink .9s steps(1, end) infinite;
+}
+.number-character {
+  display: inline-block;
+}
+.number-zero {
+  animation: character-wobble 1.8s ease-in-out infinite;
+}
+.number-zero-new {
+  animation: number-pop .35s ease-out both;
+}
+.slide.is-active .wobble-letter {
+  animation: character-wobble 1.8s ease-in-out infinite;
+}
+.swipe-hand {
+  position: absolute;
+  top: 25px;
+  left: 50%;
+  color: initial;
+  font-family: 'Apple Color Emoji', 'Segoe UI Emoji', sans-serif;
+  font-size: 1.4rem;
+  line-height: 1;
+  transform: translateX(32px);
+  animation: hand-swipe 1.8s ease-in-out infinite;
+}
+.swipe-hand.is-hidden { visibility: hidden; opacity: 0; pointer-events: none; }
 .slide-copy {
   max-width: 420px;
   margin: clamp(28px, 5vh, 52px) 0 0;
@@ -179,12 +236,13 @@ h2 { font-size: clamp(4rem, 10vw, 10rem); }
   font-size: 2rem;
   font-weight: 900;
   line-height: 1;
+  overflow: visible;
   transform: translateX(-50%);
   transition: transform .2s ease, opacity .2s ease;
 }
 .swipe-indicator:hover:not(:disabled) { transform: translateX(-50%) scale(1.1); }
 .swipe-indicator:disabled { cursor: default; opacity: .2; }
-.swipe-indicator:not(:disabled) { animation: swipe-pulse 1.4s ease-in-out infinite; }
+.swipe-indicator.is-hidden { visibility: hidden; opacity: 0; pointer-events: none; }
 .dots { display: flex; gap: 13px; align-items: center; }
 .dot {
   width: 6px;
@@ -200,7 +258,7 @@ h2 { font-size: clamp(4rem, 10vw, 10rem); }
 @media (max-width: 600px) {
   .deck { padding: 24px 22px; }
   .slide { padding: 0 25px; }
-  h1, h2 { font-size: clamp(3.3rem, 15vw, 6rem); }
+  h1, h2 { font-size: clamp(3rem, 11vw, 5rem); }
   .swipe-indicator { bottom: 12px; }
 }
 
@@ -223,9 +281,24 @@ h2 { font-size: clamp(4rem, 10vw, 10rem); }
 
 @keyframes character-wobble {
   0%, 100% { transform: translate(0, 0) rotate(0deg); }
-  25% { transform: translate(1px, -2px) rotate(-2deg); }
-  50% { transform: translate(-1px, 1px) rotate(2deg); }
-  75% { transform: translate(2px, 0) rotate(-1deg); }
+  25% { transform: translate(1px, -4px) rotate(-2deg); }
+  50% { transform: translate(-1px, 3px) rotate(2deg); }
+  75% { transform: translate(2px, -1px) rotate(-1deg); }
+}
+
+@keyframes typewriter-letter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cursor-blink {
+  0%, 45% { opacity: 1; }
+  46%, 100% { opacity: 0; }
+}
+
+@keyframes finger-swipe {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(174px); }
 }
 
 .final-slide {
@@ -236,19 +309,27 @@ h2 { font-size: clamp(4rem, 10vw, 10rem); }
   overflow: visible;
   transition: none;
 }
-.final-slide > h2 { width: auto; font-size: clamp(3.8rem, 9vw, 9rem); }
+.final-slide > h2 {
+  width: auto;
+  max-width: calc(100vw - 48px);
+  font-size: clamp(3.2rem, 7vw, 7rem);
+}
 .final-slide.is-active > h2 { animation: headline-slide .8s cubic-bezier(.2, .8, .2, 1) both; }
-.final-slide .number-sequence { width: auto; height: auto; min-height: 1em; }
+.final-slide .number-sequence {
+  width: min(100%, calc(100vw - 48px));
+  height: auto;
+  min-height: 1em;
+}
 .number-sequence {
   position: relative;
-  width: 100vw;
-  height: 100vh;
-  display: grid;
-  place-items: center;
+  display: block;
+  width: 100%;
+  height: auto;
+  text-align: center;
   overflow: visible;
   color: var(--red);
   font-family: 'Nunito', 'Arial Rounded MT Bold', 'Trebuchet MS', Arial, sans-serif;
-  font-size: clamp(3rem, 9vw, 9rem);
+  font-size: clamp(3.2rem, 7vw, 7rem);
   font-weight: 900;
   letter-spacing: -.08em;
   line-height: .8;
@@ -259,6 +340,11 @@ h2 { font-size: clamp(4rem, 10vw, 10rem); }
   animation: none;
   translate: calc(var(--tilt-x, 0) * 8px) calc(var(--tilt-y, 0) * 8px);
   transition: translate .15s ease-out;
+}
+
+@keyframes number-pop {
+  from { transform: scale(1.55); }
+  to { transform: scale(1); }
 }
 
 .physics-piece {
@@ -286,8 +372,9 @@ h2 { font-size: clamp(4rem, 10vw, 10rem); }
   100% { opacity: 1; transform: translate(0, 0) rotate(0); }
 }
 
-@keyframes swipe-pulse {
-  0%, 100% { transform: translateX(-50%) translateY(0); }
-  50% { transform: translateX(-50%) translateY(-7px); }
+@keyframes hand-swipe {
+  0% { opacity: 1; transform: translateX(32px); }
+  65% { opacity: 1; transform: translateX(-52px); }
+  100% { opacity: 0; transform: translateX(-52px); }
 }
 
