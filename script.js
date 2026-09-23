@@ -1,7 +1,7 @@
 const slides = [...document.querySelectorAll('.slide')];
 const nextButton = document.querySelector('#next');
 const growingNumber = document.querySelector('#growing-number');
-let activeIndex = 0;
+let activeIndex = -1;
 let growthTimer = null;
 let shatterTimer = null;
 let explosionTimer = null;
@@ -34,53 +34,46 @@ function enableMotionControls() {
   }
 }
 
-function mountExplosionEmbed() {
-  const slot = document.querySelector('.explosion-embed-slot');
-  if (!slot || slot.firstElementChild) return;
-
-  const embed = document.createElement('div');
-  embed.className = 'tenor-gif-embed';
-  embed.dataset.postid = '13138346';
-  embed.dataset.shareMethod = 'host';
-  embed.dataset.aspectRatio = '1';
-  embed.dataset.width = '100%';
-  embed.innerHTML = '<a href="https://tenor.com/view/discord-discordgifemoji-boom-explosion-explode-gif-13138346">Discord Discordgifemoji Sticker</a> from <a href="https://tenor.com/search/discord-stickers">Discord Stickers</a>';
-  slot.appendChild(embed);
-
-  const tenorScript = document.createElement('script');
-  tenorScript.async = true;
-  tenorScript.src = 'https://tenor.com/embed.js';
-  tenorScript.dataset.explosionLoader = 'true';
-  document.body.appendChild(tenorScript);
-}
-
 function resetExplosion() {
   if (explosionTimer !== null) window.clearTimeout(explosionTimer);
   explosionTimer = null;
 
   const explosionBackdrop = document.querySelector('.explosion-backdrop');
+  const explosionImage = explosionBackdrop?.querySelector('img');
+  const followup = document.querySelector('.explosion-followup');
   if (explosionBackdrop) {
     explosionBackdrop.style.visibility = 'hidden';
     explosionBackdrop.style.opacity = '0';
   }
-  document.querySelector('.explosion-embed-slot')?.replaceChildren();
-  document.querySelector('script[data-explosion-loader]')?.remove();
+  if (explosionImage) explosionImage.removeAttribute('src');
+  if (followup) followup.style.opacity = '0';
 }
 
 function startExplosion() {
   const explosionBackdrop = document.querySelector('.explosion-backdrop');
-  if (!explosionBackdrop) return;
+  const explosionImage = explosionBackdrop?.querySelector('img');
+  const followup = document.querySelector('.explosion-followup');
+  if (!explosionBackdrop || !explosionImage) return;
 
-  mountExplosionEmbed();
-  explosionBackdrop.style.visibility = 'visible';
-  explosionBackdrop.style.opacity = '1';
+  const source = explosionImage.dataset.src;
+  explosionImage.src = `${source}?run=${Date.now()}`;
+  explosionBackdrop.style.visibility = 'hidden';
+  explosionBackdrop.style.opacity = '0';
   explosionTimer = window.setTimeout(() => {
-    explosionBackdrop.style.opacity = '0';
+    explosionBackdrop.style.visibility = 'visible';
+    explosionBackdrop.style.opacity = '1';
     explosionTimer = window.setTimeout(() => {
+    explosionBackdrop.style.opacity = '0';
+      explosionTimer = window.setTimeout(() => {
+        if (followup) followup.style.opacity = '1';
+      }, 450);
+      explosionImage.removeAttribute('src');
+      explosionTimer = window.setTimeout(() => {
       explosionBackdrop.style.visibility = 'hidden';
-      explosionTimer = null;
-    }, 900);
-  }, 1700);
+        explosionTimer = null;
+      }, 450);
+    }, 500);
+  }, 850);
 }
 
 function addCharacterWobble() {
@@ -228,7 +221,7 @@ function createShatterFragments() {
 function startShatter() {
   resetShatter();
   if (!document.querySelector('.shatter-text')?.closest('.slide.is-active')) return;
-  shatterTimer = window.setTimeout(createShatterFragments, 450);
+  shatterTimer = window.setTimeout(createShatterFragments, 900);
 }
 
 function stopNumberGrowth() {
@@ -271,7 +264,9 @@ function startNumberGrowth() {
 }
 
 function showSlide(index) {
-  activeIndex = Math.max(0, Math.min(index, slides.length - 1));
+  const nextIndex = Math.max(0, Math.min(index, slides.length - 1));
+  if (nextIndex === activeIndex) return;
+  activeIndex = nextIndex;
   stopNumberGrowth();
   resetShatter();
   resetExplosion();
